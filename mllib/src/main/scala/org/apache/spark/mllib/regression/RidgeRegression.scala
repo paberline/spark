@@ -20,6 +20,7 @@ package org.apache.spark.mllib.regression
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.mllib.optimization._
+import org.apache.spark.mllib.pmml.PMMLExportable
 import org.apache.spark.mllib.regression.impl.GLMRegressionModel
 import org.apache.spark.mllib.util.{Loader, Saveable}
 import org.apache.spark.rdd.RDD
@@ -35,7 +36,7 @@ class RidgeRegressionModel (
     override val weights: Vector,
     override val intercept: Double)
   extends GeneralizedLinearModel(weights, intercept)
-  with RegressionModel with Serializable with Saveable {
+  with RegressionModel with Serializable with Saveable with PMMLExportable {
 
   override protected def predictPoint(
       dataMatrix: Vector,
@@ -59,7 +60,7 @@ object RidgeRegressionModel extends Loader[RidgeRegressionModel] {
     val classNameV1_0 = "org.apache.spark.mllib.regression.RidgeRegressionModel"
     (loadedClassName, version) match {
       case (className, "1.0") if className == classNameV1_0 =>
-        val numFeatures = RegressionModel.getNumFeatures(metadata, classNameV1_0, path)
+        val numFeatures = RegressionModel.getNumFeatures(metadata)
         val data = GLMRegressionModel.SaveLoadV1_0.loadData(sc, path, classNameV1_0, numFeatures)
         new RidgeRegressionModel(data.weights, data.intercept)
       case _ => throw new Exception(
@@ -171,7 +172,7 @@ object RidgeRegressionWithSGD {
       numIterations: Int,
       stepSize: Double,
       regParam: Double): RidgeRegressionModel = {
-    train(input, numIterations, stepSize, regParam, 0.01)
+    train(input, numIterations, stepSize, regParam, 1.0)
   }
 
   /**
