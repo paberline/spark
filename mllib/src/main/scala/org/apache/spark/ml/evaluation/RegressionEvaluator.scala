@@ -37,6 +37,10 @@ final class RegressionEvaluator(override val uid: String)
 
   /**
    * param for metric name in evaluation (supports `"rmse"` (default), `"mse"`, `"r2"`, and `"mae"`)
+   *
+   * Because we will maximize evaluation value (ref: `CrossValidator`),
+   * when we evaluate a metric that is needed to minimize (e.g., `"rmse"`, `"mse"`, `"mae"`),
+   * we take and output the negative of this metric.
    * @group param
    */
   val metricName: Param[String] = {
@@ -69,16 +73,19 @@ final class RegressionEvaluator(override val uid: String)
       }
     val metrics = new RegressionMetrics(predictionAndLabels)
     val metric = $(metricName) match {
-      case "rmse" =>
-        metrics.rootMeanSquaredError
-      case "mse" =>
-        metrics.meanSquaredError
-      case "r2" =>
-        metrics.r2
-      case "mae" =>
-        metrics.meanAbsoluteError
+      case "rmse" => metrics.rootMeanSquaredError
+      case "mse" => metrics.meanSquaredError
+      case "r2" => metrics.r2
+      case "mae" => metrics.meanAbsoluteError
     }
     metric
+  }
+
+  override def isLargerBetter: Boolean = $(metricName) match {
+    case "rmse" => false
+    case "mse" => false
+    case "r2" => true
+    case "mae" => false
   }
 
   override def copy(extra: ParamMap): RegressionEvaluator = defaultCopy(extra)

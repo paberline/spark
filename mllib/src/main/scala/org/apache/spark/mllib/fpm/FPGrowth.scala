@@ -25,10 +25,10 @@ import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
 import org.apache.spark.{HashPartitioner, Logging, Partitioner, SparkException}
-import org.apache.spark.annotation.Experimental
+import org.apache.spark.annotation.{Experimental, Since}
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.api.java.JavaSparkContext.fakeClassTag
-import org.apache.spark.mllib.fpm.FPGrowth.FreqItemset
+import org.apache.spark.mllib.fpm.FPGrowth._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel
 
@@ -38,9 +38,21 @@ import org.apache.spark.storage.StorageLevel
  * Model trained by [[FPGrowth]], which holds frequent itemsets.
  * @param freqItemsets frequent itemset, which is an RDD of [[FreqItemset]]
  * @tparam Item item type
+ *
  */
+@Since("1.3.0")
 @Experimental
-class FPGrowthModel[Item: ClassTag](val freqItemsets: RDD[FreqItemset[Item]]) extends Serializable
+class FPGrowthModel[Item: ClassTag](val freqItemsets: RDD[FreqItemset[Item]]) extends Serializable {
+  /**
+   * Generates association rules for the [[Item]]s in [[freqItemsets]].
+   * @param confidence minimal confidence of the rules produced
+   */
+  @Since("1.5.0")
+  def generateAssociationRules(confidence: Double): RDD[AssociationRules.Rule[Item]] = {
+    val associationRules = new AssociationRules(confidence)
+    associationRules.run(freqItemsets)
+  }
+}
 
 /**
  * :: Experimental ::
@@ -58,7 +70,9 @@ class FPGrowthModel[Item: ClassTag](val freqItemsets: RDD[FreqItemset[Item]]) ex
  *
  * @see [[http://en.wikipedia.org/wiki/Association_rule_learning Association rule learning
  *       (Wikipedia)]]
+ *
  */
+@Since("1.3.0")
 @Experimental
 class FPGrowth private (
     private var minSupport: Double,
@@ -67,12 +81,16 @@ class FPGrowth private (
   /**
    * Constructs a default instance with default parameters {minSupport: `0.3`, numPartitions: same
    * as the input data}.
+   *
    */
+  @Since("1.3.0")
   def this() = this(0.3, -1)
 
   /**
    * Sets the minimal support level (default: `0.3`).
+   *
    */
+  @Since("1.3.0")
   def setMinSupport(minSupport: Double): this.type = {
     this.minSupport = minSupport
     this
@@ -80,7 +98,9 @@ class FPGrowth private (
 
   /**
    * Sets the number of partitions used by parallel FP-growth (default: same as input data).
+   *
    */
+  @Since("1.3.0")
   def setNumPartitions(numPartitions: Int): this.type = {
     this.numPartitions = numPartitions
     this
@@ -90,7 +110,9 @@ class FPGrowth private (
    * Computes an FP-Growth model that contains frequent itemsets.
    * @param data input data set, each element contains a transaction
    * @return an [[FPGrowthModel]]
+   *
    */
+  @Since("1.3.0")
   def run[Item: ClassTag](data: RDD[Array[Item]]): FPGrowthModel[Item] = {
     if (data.getStorageLevel == StorageLevel.NONE) {
       logWarning("Input data is not cached.")
@@ -190,7 +212,9 @@ class FPGrowth private (
 
 /**
  * :: Experimental ::
+ *
  */
+@Since("1.3.0")
 @Experimental
 object FPGrowth {
 
@@ -199,12 +223,16 @@ object FPGrowth {
    * @param items items in this itemset. Java users should call [[FreqItemset#javaItems]] instead.
    * @param freq frequency
    * @tparam Item item type
+   *
    */
+  @Since("1.3.0")
   class FreqItemset[Item](val items: Array[Item], val freq: Long) extends Serializable {
 
     /**
      * Returns items in a Java List.
+     *
      */
+    @Since("1.3.0")
     def javaItems: java.util.List[Item] = {
       items.toList.asJava
     }
