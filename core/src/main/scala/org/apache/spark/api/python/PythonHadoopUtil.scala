@@ -26,6 +26,7 @@ import org.apache.hadoop.io._
 import scala.util.{Failure, Success, Try}
 import org.apache.spark.annotation.Experimental
 
+
 /**
  * :: Experimental ::
  * A trait for use with reading custom classes in PySpark. Implement this trait and add custom

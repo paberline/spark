@@ -17,77 +17,46 @@
 
 package org.apache.spark.api.python
 
-import java.util._
-
-import org.apache.hadoop.io.{Writable, DoubleWritable, ArrayWritable}
+import org.apache.hadoop.io._
 import org.apache.spark.SparkException
-
-import scala.collection.JavaConversions
-import scala.collection.JavaConversions._
-
-private[python] class DoubleArrayListWritable extends ArrayWritable(
-  classOf[DoubleArrayListWritable])
 
 private[python] class DoubleArrayWritable extends ArrayWritable(classOf[DoubleWritable])
 
-private[python] class NestedDoubleArrayWritable extends ArrayWritable(classOf[DoubleArrayWritable])
+private[python] class BytesArrayWritable extends ArrayWritable(classOf[BytesWritable])
+
+private[python] class ByteArrayToWritableConverter extends Converter[Any, Writable] {
+
+    override def convert(obj: Any) = obj match {
+      case aob: Array[Byte] => new BytesWritable(aob)
+      case other =>
+        val simpleName = other.getClass.getSimpleName
+        throw new SparkException(s"Data of type $simpleName is not supported")
+    }
+}
+
+private[python] class WritableToByteArrayConverter extends Converter[Any, Array[Byte]] {
+
+  override def convert(obj: Any) = obj match {
+    case bw : BytesWritable => bw.getBytes
+    case other => throw new SparkException(s"Data of type $other is not supported")
+  }
+}
 
 private[python] class DoubleArrayToWritableConverter extends Converter[Any, Writable] {
 
-  override def convert(obj: Any) = {
-
-    obj match {
-      case arr if arr.getClass.isArray && arr.getClass.getComponentType == classOf[Double] =>
+  override def convert(obj: Any) = obj match {
+      case arr: Array[Double] =>
         val daw = new DoubleArrayWritable
         daw.set(arr.asInstanceOf[Array[Double]].map(new DoubleWritable(_)))
         daw
       case other => throw new SparkException(s"Data of type $other is not supported")
     }
-  }
 }
 
 private[python] class WritableToDoubleArrayConverter extends Converter[Any, Array[Double]] {
+
   override def convert(obj: Any) = obj match {
     case daw : DoubleArrayWritable => daw.get.map(_.asInstanceOf[DoubleWritable].get)
-    case other => throw new SparkException(s"Data of type $other is not supported")
-  }
-}
-
-private[python] class DoubleArrayListOfDoubleArrayToWritableConverter extends
-Converter[Any, Writable] {
-
-  val nestedConverter = new DoubleArrayToWritableConverter
-
-  override def convert(obj: Any) = obj match {
-
-    case al: ArrayList[_] =>
-      val list = asScalaBuffer(al).toList
-      try {
-        val aod = list.map(e => e.asInstanceOf[Array[Double]])
-        val ndalw = new NestedDoubleArrayWritable()
-        ndalw.set(aod.map(nestedConverter.convert(_)).toArray)
-        ndalw
-      }
-      catch {
-        case cce: ClassCastException =>
-          // ClassCastException is thrown only when cast fails on a non empty list.
-          val listElemClassName = list.head.getClass.getCanonicalName
-          throw new SparkException(s"Data of type $listElemClassName is not supported")
-      }
-    case other => throw new SparkException(s"Data of type $other is not supported")
-  }
-}
-
-private[python] class WritableToDoubleArrayListOfDoubleArrayConverter extends
-Converter[Any, ArrayList[Array[Double]]] {
-
-  val nestedConverter = new WritableToDoubleArrayConverter
-
-  override def convert(obj: Any) = obj match {
-    case ndalw: NestedDoubleArrayWritable =>
-      val converted = ndalw.get.map(nestedConverter.convert(_))
-      val listNestedConverted = JavaConversions.mutableSeqAsJavaList[Array[Double]](converted)
-      new ArrayList[Array[Double]](listNestedConverted)
     case other => throw new SparkException(s"Data of type $other is not supported")
   }
 }

@@ -25,9 +25,7 @@ import com.google.common.base.Charsets.UTF_8
 import org.apache.hadoop.io._
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
 
-import org.apache.spark.SparkException
 import org.apache.spark.api.java.JavaSparkContext
-
 
 /**
  * A class to test Pyrolite serialization on the Scala side, that will be deserialized
